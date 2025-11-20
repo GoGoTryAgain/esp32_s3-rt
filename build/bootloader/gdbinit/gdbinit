@@ -1,0 +1,2 @@
+source F:/esp-workspace/s3-rt/esp32_s3-rt/build/bootloader/gdbinit/symbols
+source F:/esp-workspace/s3-rt/esp32_s3-rt/build/bootloader/gdbinit/connect

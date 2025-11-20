@@ -1,0 +1,25 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "D:\\esp\\v5.5.1\\esp-idf",
+  "idf.pythonInstallPath": "D:\\esp\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.openOcdConfigs": [
+    "board/esp32s3-builtin.cfg"
+  ],
+  "idf.portWin": "COM1",
+  "idf.toolsPathWin": "D:\\esp\\.espressif",
+  "idf.customExtraVars": {
+    "IDF_TARGET": "esp32s3"
+  },
+  "clangd.path": "D:\\esp\\.espressif\\tools\\esp-clang\\esp-20.1.1_20250829\\esp-clang\\bin\\clangd.exe",
+  "clangd.arguments": [
+    "--background-index",
+    "--query-driver=D:\\esp\\.espressif\\tools\\xtensa-esp-elf\\esp-15.2.0_20250929\\xtensa-esp-elf\\bin\\xtensa-esp32s3-elf-gcc.exe",
+    "--compile-commands-dir=${workspaceFolder}\\build"
+],
+"files.associations": {
+    "cstdint": "cpp",
+    "font.h": "c",
+    "drv_oled.h": "c",
+    "i2c_master.h": "c"
+}
+}
