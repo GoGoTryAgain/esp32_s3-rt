@@ -1,3 +1,5 @@
 idf_component_register(SRCS "drv_oled.c"  # 根据实际源文件名调整
                        INCLUDE_DIRS "include"
-                       REQUIRES driver)
+                       INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/Bus/include"
+                       REQUIRES driver
+                       PRIV_REQUIRES Bus)

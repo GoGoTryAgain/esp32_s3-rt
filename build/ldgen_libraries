@@ -160,4 +160,5 @@ F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/usb/libusb.a
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/wifi_provisioning/libwifi_provisioning.a
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/json/libjson.a
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/main/libmain.a
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/libgSesnor.a
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/oled/liboled.a

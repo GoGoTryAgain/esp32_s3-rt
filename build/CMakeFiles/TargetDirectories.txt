@@ -862,6 +862,13 @@ F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/main/CMakeFiles/list_install_co
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/main/CMakeFiles/install.dir
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/main/CMakeFiles/install/local.dir
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/main/CMakeFiles/install/strip.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/__idf_gSesnor.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/edit_cache.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/rebuild_cache.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/list_install_components.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/install.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/install/local.dir
+F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/gSesnor/CMakeFiles/install/strip.dir
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/oled/CMakeFiles/__idf_oled.dir
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/oled/CMakeFiles/edit_cache.dir
 F:/esp-workspace/s3-rt/esp32_s3-rt/build/esp-idf/oled/CMakeFiles/rebuild_cache.dir
