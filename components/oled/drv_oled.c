@@ -9,8 +9,8 @@
 static const char *TAG = "oled_driver";
 
 
-i2c_master_dev_handle_t I2C_dev_handle = NULL;
-i2c_master_bus_handle_t I2C_bus_handle = NULL;
+static i2c_master_dev_handle_t I2C_dev_handle = NULL;
+static i2c_master_bus_handle_t I2C_bus_handle = NULL;
 
 
 
@@ -70,7 +70,7 @@ void OLED_RegInit(void)
 	OLED_WR_Byte(0xAF,OLED_CMD);//--turn on oled panel
 }
 
-static void i2c_master_init(i2c_master_bus_handle_t *bus_handle, i2c_master_dev_handle_t *dev_handle)
+static void i2c_master_init()
 {
     I2C_bus_handle = GetI2CBusHandle(I2C_MASTER_NUM);
     ESP_ERROR_CHECK(I2C_bus_handle != NULL ? ESP_OK : ESP_FAIL);
@@ -81,12 +81,12 @@ static void i2c_master_init(i2c_master_bus_handle_t *bus_handle, i2c_master_dev_
         .device_address = OLED_ADDR,
         .scl_speed_hz = I2C_MASTER_FREQ_HZ,
     };
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(*bus_handle, &dev_config, dev_handle));
+    ESP_ERROR_CHECK(i2c_master_bus_add_device(I2C_bus_handle, &dev_config, &I2C_dev_handle));
 }
 
 void OLED_Init(void)
 { 	
-    i2c_master_init(&I2C_bus_handle, &I2C_dev_handle);
+    i2c_master_init();
     OLED_RegInit();
 }  
 

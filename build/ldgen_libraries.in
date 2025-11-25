@@ -160,5 +160,7 @@ $<TARGET_FILE:idf::usb>
 $<TARGET_FILE:idf::wifi_provisioning>
 $<TARGET_FILE:__idf_json>
 $<TARGET_FILE:idf::main>
+$<TARGET_FILE:idf::Bus>
 $<TARGET_FILE:idf::gSesnor>
+$<TARGET_FILE:__idf_Bus>
 $<TARGET_FILE:idf::oled>

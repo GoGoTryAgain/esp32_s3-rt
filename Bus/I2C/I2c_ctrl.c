@@ -1,7 +1,7 @@
 #include "I2c_ctrl.h"
 
 
-i2c_master_bus_handle_t I2C_bus_handle[2] = {NULL};
+static i2c_master_bus_handle_t I2C_bus_handle[2] = {NULL};
 
 static void I2c_master_init(i2c_port_t i2c_num)
 {

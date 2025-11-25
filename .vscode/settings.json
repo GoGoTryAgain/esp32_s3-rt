@@ -20,6 +20,10 @@
     "cstdint": "cpp",
     "font.h": "c",
     "drv_oled.h": "c",
-    "i2c_master.h": "c"
-}
+    "i2c_master.h": "c",
+    "esp_log.h": "c",
+    "i2c_ctrl.h": "c",
+    "drv_mpu6050.h": "c"
+},
+"idf.flashType": "JTAG"
 }
