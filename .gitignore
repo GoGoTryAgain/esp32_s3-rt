@@ -1,0 +1,37 @@
+# 编译产物
+*.o
+*.obj
+*.elf
+*.bin
+*.hex
+*.map
+*.elf.map
+*.lst
+*.d
+*.srec
+*.bak
+
+# 构建目录（ESP-IDF默认构建目录）
+build/
+cmake-build-*/
+sdkconfig.old
+sdkconfig.defaults
+#sdkconfig
+
+# IDE/编辑器配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ESP-IDF相关临时文件
+#esp-idf/
+dist/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# 日志文件
+*.log

@@ -23,7 +23,12 @@
     "i2c_master.h": "c",
     "esp_log.h": "c",
     "i2c_ctrl.h": "c",
-    "drv_mpu6050.h": "c"
+    "drv_mpu6050.h": "c",
+    "array": "c",
+    "string": "c",
+    "string_view": "c",
+    "ranges": "c",
+    "span": "c"
 },
 "idf.flashType": "JTAG"
 }

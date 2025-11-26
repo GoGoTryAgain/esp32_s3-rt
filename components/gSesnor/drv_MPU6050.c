@@ -28,6 +28,51 @@ static esp_err_t i2c_master_init()
     return ESP_OK;
 }
 
+static void ReadBytes(uint8_t reg_addr, uint8_t length, uint8_t *data)
+{
+    uint8_t read_buffer[length];
+    ESP_ERROR_CHECK(i2c_master_transmit_receive(I2C_dev_handle, &reg_addr, sizeof(reg_addr), read_buffer, length, I2C_MASTER_TIMEOUT_MS));
+    memcpy(data, read_buffer, length);
+}
+
+static void ReadByte(uint8_t reg_addr, uint8_t *data)
+{
+    ReadBytes(reg_addr, 1, data);
+}
+
+static void I2C_WriteBit(uint8_t reg_addr, uint8_t bitNum, uint8_t enable)
+{
+    uint8_t tmpdata = 0;
+    ReadByte(reg_addr, &tmpdata);
+
+    if (enable) {
+        tmpdata |= (1 << bitNum);
+    } else {
+        tmpdata &= ~(1 << bitNum);
+    }
+
+    uint8_t write_buffer[2];
+    write_buffer[0] = reg_addr;
+    write_buffer[1] = tmpdata;
+    ESP_ERROR_CHECK(i2c_master_transmit(I2C_dev_handle, write_buffer, sizeof(write_buffer), I2C_MASTER_TIMEOUT_MS));
+}
+
+
+static void I2C_WriteBits(uint8_t reg_addr, uint8_t bitStart, uint8_t length, uint8_t data)
+{
+    uint8_t tmpdata = 0;
+    ReadByte(reg_addr, &tmpdata);
+
+    uint8_t mask = ((1 << length) - 1) << bitStart;
+    tmpdata &= ~mask;
+    tmpdata |= ((data << bitStart) & mask);
+
+    uint8_t write_buffer[2];
+    write_buffer[0] = reg_addr;
+    write_buffer[1] = tmpdata;
+    ESP_ERROR_CHECK(i2c_master_transmit(I2C_dev_handle, write_buffer, sizeof(write_buffer), I2C_MASTER_TIMEOUT_MS));
+
+}
 
 /** Set clock source setting.
  * An internal 8MHz oscillator, gyroscope based clock, or external sources can
@@ -61,9 +106,8 @@ static esp_err_t i2c_master_init()
  */
 void SetClockSource(uint8_t source) 
 {
-    i2c_master_transmit(I2C_dev_handle, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
+    I2C_WriteBits(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
 }
-
 
 /** Set full-scale gyroscope range.
  * @param range New full-scale gyroscope range value
@@ -73,19 +117,19 @@ void SetClockSource(uint8_t source)
  * @see MPU6050_GCONFIG_FS_SEL_BIT
  * @see MPU6050_GCONFIG_FS_SEL_LENGTH
  */
-void setFullScaleGyroRange(uint8_t range) 
+void SetFullScaleGyroRange(uint8_t range) 
 
 {
-    i2c_master_transmit(I2C_dev_handle, MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
+    I2C_WriteBits(MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
 }
 
 /** Set full-scale accelerometer range.
  * @param range New full-scale accelerometer range setting
  * @see getFullScaleAccelRange()
  */
-void setFullScaleAccelRange(uint8_t range)
+void SetFullScaleAccelRange(uint8_t range)
 {
-    i2c_master_transmit(I2C_dev_handle, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
+    I2C_WriteBits(MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
 }
 
 /** Set sleep mode status.
@@ -94,9 +138,9 @@ void setFullScaleAccelRange(uint8_t range)
  * @see MPU6050_RA_PWR_MGMT_1
  * @see MPU6050_PWR1_SLEEP_BIT
  */
-void setSleepEnabled(uint8_t enabled) 
+void SetSleepEnabled(uint8_t enabled) 
 {
-    i2c_master_transmit(I2C_dev_handle, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
+    I2C_WriteBit(MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
 }
 
 esp_err_t MPU6050_Init(void) 
