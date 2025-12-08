@@ -19,10 +19,12 @@
 
 
 
-void OLED_Init(void);
+void OLED_Init(void *arg);
 void OLED_Clear(void);
 void OLED_ShowChar(uint8_t x, uint8_t y, uint8_t chr, uint8_t Char_Size);
 void OLED_ShowString(uint8_t x,uint8_t y,char *chr,uint8_t Char_Size);
 void OLED_ShowNum(uint8_t x, uint8_t y, uint8_t num, uint8_t len, uint8_t size);
+void Oled_ShowExample(void *arg);
+void OLED_Task_Init(void);
 
 #endif // DRV_OLED_H

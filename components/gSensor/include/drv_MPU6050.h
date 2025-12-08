@@ -1,13 +1,16 @@
 #ifndef _DRV_MPU6050_H_
 #define _DRV_MPU6050_H_
 
-#include "I2c_ctrl.h"
+#include "stdint.h"
+#include "esp_err.h"
 
 
 #define MPU6050_ADDRESS_AD0_LOW     (0x68) // address pin low (GND), default for InvenSense evaluation board
 #define MPU6050_ADDRESS_AD0_HIGH    (0x69) // address pin high (VCC)
 
 #define MPU6050_ADDRESS_ADDRESS       MPU6050_ADDRESS_AD0_LOW
+#define MPU6050_WHO_AM_I_ADDR            0x75
+
 
 #define MPU6050_SCL_PIN            I2C_MASTER_SCL_IO
 #define MPU6050_SDA_PIN            I2C_MASTER_SDA_IO
@@ -58,6 +61,33 @@
 #define MPU6050_ACONFIG_AFS_SEL_LENGTH      2
 #define MPU6050_ACONFIG_ACCEL_HPF_BIT       2
 #define MPU6050_ACONFIG_ACCEL_HPF_LENGTH    3
+
+
+// I2C Master Control/Status
+#define MPU6050_RA_I2C_MST_CTRL     0x24
+// I2C Master Control bits
+#define MPU6050_MULT_MST_EN_BIT     7
+#define MPU6050_WAIT_FOR_ES_BIT     6
+#define MPU6050_SLV_3_FIFO_EN_BIT   5
+#define MPU6050_I2C_MST_P_NSR_BIT   4
+#define MPU6050_I2C_MST_CLK_BIT     3
+#define MPU6050_I2C_MST_CLK_LENGTH  4
+
+//FIFO address
+#define MPU6050_RA_FIFO_EN          0x23
+//FIFO enable bits
+#define MPU6050_TEMP_FIFO_EN_BIT    7
+#define MPU6050_XG_FIFO_EN_BIT      6
+#define MPU6050_YG_FIFO_EN_BIT      5
+#define MPU6050_ZG_FIFO_EN_BIT      4
+#define MPU6050_ACCEL_FIFO_EN_BIT   3
+#define MPU6050_SLV2_FIFO_EN_BIT    2
+#define MPU6050_SLV1_FIFO_EN_BIT    1
+#define MPU6050_SLV0_FIFO_EN_BIT    0
+
+
+void MPU6050_Init(void *arg);
+
 
 #endif /* _DRV_MPU6050_H_ */
 
