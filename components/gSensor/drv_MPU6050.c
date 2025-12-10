@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "queueManager.h"
 //#include "freertos/semphr.h"
 
 
@@ -31,7 +32,7 @@ static esp_err_t i2c_master_init()
     return ESP_OK;
 }
 
-static void ReadBytes(uint8_t regAddr, uint8_t length, uint8_t *data)
+static void I2C_ReadBytes(uint8_t regAddr, uint8_t length, uint8_t *data)
 {
     uint8_t read_buffer[length];
     ESP_ERROR_CHECK(i2c_master_transmit_receive(I2C_dev_handle, &regAddr, sizeof(regAddr), read_buffer, length, I2C_MASTER_TIMEOUT_MS));
@@ -40,7 +41,7 @@ static void ReadBytes(uint8_t regAddr, uint8_t length, uint8_t *data)
 
 static void ReadByte(uint8_t regAddr, uint8_t *data)
 {
-    ReadBytes(regAddr, 1, data);
+    I2C_ReadBytes(regAddr, 1, data);
 }
 
 static void I2C_ReadBit(uint8_t regAddr, uint8_t bitNum, uint8_t *enable)
@@ -469,6 +470,96 @@ void SetMasterClockSpeed(uint8_t speed)
     I2C_WriteBits(MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, speed);
 }
 
+/** Get 3-axis accelerometer readings.
+ * These registers store the most recent accelerometer measurements.
+ * Accelerometer measurements are written to these registers at the Sample Rate
+ * as defined in Register 25.
+ *
+ * The accelerometer measurement registers, along with the temperature
+ * measurement registers, gyroscope measurement registers, and external sensor
+ * data registers, are composed of two sets of registers: an internal register
+ * set and a user-facing read register set.
+ *
+ * The data within the accelerometer sensors' internal register set is always
+ * updated at the Sample Rate. Meanwhile, the user-facing read register set
+ * duplicates the internal register set's data values whenever the serial
+ * interface is idle. This guarantees that a burst read of sensor registers will
+ * read measurements from the same sampling instant. Note that if burst reads
+ * are not used, the user is responsible for ensuring a set of single byte reads
+ * correspond to a single sampling instant by checking the Data Ready interrupt.
+ *
+ * Each 16-bit accelerometer measurement has a full scale defined in ACCEL_FS
+ * (Register 28). For each full scale setting, the accelerometers' sensitivity
+ * per LSB in ACCEL_xOUT is shown in the table below:
+ *
+ * <pre>
+ * AFS_SEL | Full Scale Range | LSB Sensitivity
+ * --------+------------------+----------------
+ * 0       | +/- 2g           | 8192 LSB/mg
+ * 1       | +/- 4g           | 4096 LSB/mg
+ * 2       | +/- 8g           | 2048 LSB/mg
+ * 3       | +/- 16g          | 1024 LSB/mg
+ * </pre>
+ *
+ * @param x 16-bit signed integer container for X-axis acceleration
+ * @param y 16-bit signed integer container for Y-axis acceleration
+ * @param z 16-bit signed integer container for Z-axis acceleration
+ * @see MPU6050_RA_GYRO_XOUT_H
+ */
+void GetAcceleration(int16_t* x, int16_t* y, int16_t* z) {
+    uint8_t buffer[6];
+    I2C_ReadBytes(MPU6050_RA_ACCEL_XOUT_H, 6, buffer);
+    *x = (((int16_t)buffer[0]) << 8) | buffer[1];
+    *y = (((int16_t)buffer[2]) << 8) | buffer[3];
+    *z = (((int16_t)buffer[4]) << 8) | buffer[5];
+}
+/** Get X-axis accelerometer reading.
+ * @return X-axis acceleration measurement in 16-bit 2's complement format
+ * @see getMotion6()
+ * @see MPU6050_RA_ACCEL_XOUT_H
+ */
+int16_t GetAccelerationX() 
+{
+    uint8_t buffer[2];
+    I2C_ReadBytes(MPU6050_RA_ACCEL_XOUT_H, 2, buffer);
+    return (((int16_t)buffer[0]) << 8) | buffer[1];
+}
+/** Get Y-axis accelerometer reading.
+ * @return Y-axis acceleration measurement in 16-bit 2's complement format
+ * @see getMotion6()
+ * @see MPU6050_RA_ACCEL_YOUT_H
+ */
+int16_t GetAccelerationY()
+{
+    uint8_t buffer[2];
+    I2C_ReadBytes(MPU6050_RA_ACCEL_YOUT_H, 2, buffer);
+    return (((int16_t)buffer[0]) << 8) | buffer[1];
+}
+/** Get Z-axis accelerometer reading.
+ * @return Z-axis acceleration measurement in 16-bit 2's complement format
+ * @see getMotion6()
+ * @see MPU6050_RA_ACCEL_ZOUT_H
+ */
+int16_t GetAccelerationZ()
+{
+    uint8_t buffer[2];
+    I2C_ReadBytes(MPU6050_RA_ACCEL_ZOUT_H, 2, buffer);
+    return (((int16_t)buffer[0]) << 8) | buffer[1];
+}
+
+// TEMP_OUT_* registers
+
+/** Get current internal temperature.
+ * @return Temperature reading in 16-bit 2's complement format
+ * @see MPU6050_RA_TEMP_OUT_H
+ */
+int16_t GetTemperature()
+{
+    uint8_t buffer[2];
+    I2C_ReadBytes(MPU6050_RA_TEMP_OUT_H, 2, buffer);
+    return (((int16_t)buffer[0]) << 8) | buffer[1];
+}
+
 
 void MPU6050_WhoAmI()
 {
@@ -507,6 +598,18 @@ void MPU6050_Init(void *arg)
     SetSleepEnabled(false); 
 
     ESP_LOGI(TAG, "MPU6050 initialized successfully");
+    while(1) {
+        AccMsg_t accData;
+        // int16_t gx, gy, gz;
+        int16_t t;
+        GetAcceleration(&accData.x, &accData.y, &accData.z);
+        t = GetTemperature();
+        ESP_LOGI(TAG, "ax: %d, ay: %d, az: %d, t: %d", accData.x, accData.y, accData.z, t);
+
+        xQueueSend(g_msgQueue.msgQueueAcc, &accData, portMAX_DELAY);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
     vTaskDelete(NULL); // 删除当前任务，不会触发错误
 
 }

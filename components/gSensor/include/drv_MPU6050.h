@@ -72,6 +72,31 @@
 #define MPU6050_I2C_MST_P_NSR_BIT   4
 #define MPU6050_I2C_MST_CLK_BIT     3
 #define MPU6050_I2C_MST_CLK_LENGTH  4
+#define MPU6050_RA_I2C_MST_STATUS   0x36
+
+//INT
+#define MPU6050_RA_INT_PIN_CFG      0x37
+#define MPU6050_RA_INT_ENABLE       0x38
+#define MPU6050_RA_DMP_INT_STATUS   0x39
+#define MPU6050_RA_INT_STATUS       0x3A
+
+//Accel
+#define MPU6050_RA_ACCEL_XOUT_H     0x3B
+#define MPU6050_RA_ACCEL_XOUT_L     0x3C
+#define MPU6050_RA_ACCEL_YOUT_H     0x3D
+#define MPU6050_RA_ACCEL_YOUT_L     0x3E
+#define MPU6050_RA_ACCEL_ZOUT_H     0x3F
+#define MPU6050_RA_ACCEL_ZOUT_L     0x40
+
+//Gyro
+#define MPU6050_RA_TEMP_OUT_H       0x41
+#define MPU6050_RA_TEMP_OUT_L       0x42
+#define MPU6050_RA_GYRO_XOUT_H      0x43
+#define MPU6050_RA_GYRO_XOUT_L      0x44
+#define MPU6050_RA_GYRO_YOUT_H      0x45
+#define MPU6050_RA_GYRO_YOUT_L      0x46
+#define MPU6050_RA_GYRO_ZOUT_H      0x47
+#define MPU6050_RA_GYRO_ZOUT_L      0x48
 
 //FIFO address
 #define MPU6050_RA_FIFO_EN          0x23

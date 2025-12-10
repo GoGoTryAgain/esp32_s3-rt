@@ -8,6 +8,7 @@ idf_build_set_property(MINIMAL_BUILD OFF)
 set(EXTRA_COMPONENT_DIRS 
     ${EXTRA_COMPONENT_DIRS} 
     "${CMAKE_CURRENT_SOURCE_DIR}/components"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Bus")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Bus"
+    "${CMAKE_CURRENT_SOURCE_DIR}/utils")
 project(esp32_s3-rt)
 

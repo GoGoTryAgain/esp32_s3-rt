@@ -3,19 +3,21 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "I2c_ctrl.h"
+#include "queueManager.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
 
 static const char *TAG = "oled_driver";
-TaskHandle_t oled_task_handle = NULL;
+TaskHandle_t show_example_handle = NULL;
 
 static i2c_master_dev_handle_t I2C_dev_handle = NULL;
 static i2c_master_bus_handle_t I2C_bus_handle = NULL;
 
 SemaphoreHandle_t gInitSem;
 
+void ShowMpu60xData(void *arg);
 
 
 void OLED_WR_Byte(unsigned data,unsigned DataMode)
@@ -100,15 +102,24 @@ void OLED_Task_Init(void)
         2,            // 优先级（高于 IDLE 任务）
         NULL         // 不保存任务句柄
     );
+    // xTaskCreate(
+    //     Oled_ShowExample,
+    //     "Oled_ShowExample",
+    //     8192,
+    //     NULL,
+    //     1,
+    //     &show_example_handle
+    // );
     xTaskCreate(
-        Oled_ShowExample,
-        "Oled_ShowExample",
+        ShowMpu60xData,
+        "ShowMpu60xData",
         8192,
         NULL,
         1,
-        &oled_task_handle
+        NULL
     );
-    UBaseType_t stack_words = uxTaskGetStackHighWaterMark(oled_task_handle);
+
+    UBaseType_t stack_words = uxTaskGetStackHighWaterMark(show_example_handle);
     ESP_LOGI(TAG, "stack size: %d words", stack_words);
 }
 void OLED_Init(void *arg)
@@ -119,6 +130,27 @@ void OLED_Init(void *arg)
     xSemaphoreGive(gInitSem); // 释放信号量
     vTaskDelete(NULL); // 删除当前任务，不会触发错误
 }  
+
+void ShowMpu60xData(void *arg)
+{
+    AccMsg_t recv_msg;
+    for (;;) {
+        BaseType_t ret = xQueueReceive(g_msgQueue.msgQueueAcc, &recv_msg, portMAX_DELAY);
+        if (show_example_handle != NULL) {
+            vTaskDelete(show_example_handle);
+            show_example_handle = NULL;
+        }
+        if (ret == pdTRUE) {
+            OLED_ShowString(0,0,"x:",16);  
+            OLED_ShowNum(6, 0, recv_msg.x, 4, 16);
+            OLED_ShowString(0,2,"y:",16);  
+            OLED_ShowNum(6, 2, recv_msg.y, 4, 16);
+            OLED_ShowString(0,4,"z:",16);  
+            OLED_ShowNum(6, 4, recv_msg.z, 4, 16);
+        }
+    } 
+}
+
 
 void OLED_Clear(void)  
 {  
@@ -219,9 +251,9 @@ void OLED_ShowNum(uint8_t x,uint8_t y,uint8_t num,uint8_t len,uint8_t size2)
 } 
 
 void check_stack_usage() {
-    if (oled_task_handle != NULL) {
+    if (show_example_handle != NULL) {
         // uxTaskGetStackHighWaterMark返回剩余栈空间（单位：字，ESP32中1字=4字节）
-        UBaseType_t stack_high_water_mark = uxTaskGetStackHighWaterMark(oled_task_handle);
+        UBaseType_t stack_high_water_mark = uxTaskGetStackHighWaterMark(show_example_handle);
         // 计算已使用栈空间 = 总栈大小 - 剩余栈空间（注意单位转换）
         uint32_t total_stack = 8192; // 创建任务时的栈大小（字节）
         uint32_t used_stack = total_stack - stack_high_water_mark;
@@ -246,7 +278,7 @@ void Oled_ShowExample(void *arg)
     OLED_ShowString(63,6,"CODE:",16); 
     OLED_ShowChar(48,6,t,16);	
 	while(1) 
-	{		
+	{
 		t++;
 		if (t > '~') {
             t = ' ';

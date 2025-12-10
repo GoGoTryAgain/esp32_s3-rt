@@ -9,7 +9,7 @@
 
 void Task_init()
 {
-    //OLED_Task_Init();
+    OLED_Task_Init();
 
     xTaskCreate(
         MPU6050_Init,   // 任务函数
