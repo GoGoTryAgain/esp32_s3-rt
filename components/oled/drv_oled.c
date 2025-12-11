@@ -19,6 +19,18 @@ SemaphoreHandle_t gInitSem;
 
 void ShowMpu60xData(void *arg);
 
+uint32_t GetDigitCount(int num)
+{
+    uint32_t count = 0;
+    int tmp = abs(num); 
+    if (num < 0) {
+        count++;
+    }
+    for (; tmp; tmp /= 10) {
+        count++;                               
+    }
+    return count;
+}
 
 void OLED_WR_Byte(unsigned data,unsigned DataMode)
 {
@@ -126,6 +138,7 @@ void OLED_Init(void *arg)
 { 	
     i2c_master_init();
     OLED_RegInit();
+    OLED_Clear(); 
     ESP_LOGI(TAG, "to send sem");
     xSemaphoreGive(gInitSem); // 释放信号量
     vTaskDelete(NULL); // 删除当前任务，不会触发错误
@@ -142,11 +155,11 @@ void ShowMpu60xData(void *arg)
         }
         if (ret == pdTRUE) {
             OLED_ShowString(0,0,"x:",16);  
-            OLED_ShowNum(6, 0, recv_msg.x, 4, 16);
+            OLED_ShowNum(16, 0, recv_msg.x, GetDigitCount(recv_msg.x), 16);
             OLED_ShowString(0,2,"y:",16);  
-            OLED_ShowNum(6, 2, recv_msg.y, 4, 16);
+            OLED_ShowNum(16, 2, recv_msg.y, GetDigitCount(recv_msg.y), 16);
             OLED_ShowString(0,4,"z:",16);  
-            OLED_ShowNum(6, 4, recv_msg.z, 4, 16);
+            OLED_ShowNum(16, 4, recv_msg.z, GetDigitCount(recv_msg.z), 16);
         }
     } 
 }
@@ -230,10 +243,16 @@ uint32_t oled_pow(uint8_t m,uint8_t n)
 	while(n--)result*=m;    
 	return result;
 }
-void OLED_ShowNum(uint8_t x,uint8_t y,uint8_t num,uint8_t len,uint8_t size2)
+void OLED_ShowNum(uint8_t x,uint8_t y, int32_t num,uint8_t len,uint8_t size2)
 {         	
 	uint8_t t,temp;
-	uint8_t enshow=0;						   
+	uint8_t enshow=0;		
+    if (num < 0) {
+        OLED_ShowChar(x,y,'-',size2);
+        x += size2/2;
+        num = -num;
+        len--;
+    }				   
 	for(t=0;t<len;t++)
 	{
 		temp=(num/oled_pow(10,len-t-1))%10;
@@ -248,6 +267,11 @@ void OLED_ShowNum(uint8_t x,uint8_t y,uint8_t num,uint8_t len,uint8_t size2)
 		}
 	 	OLED_ShowChar(x+(size2/2)*t,y,temp+'0',size2); 
 	}
+} 
+
+void OLED_ShowNums(uint8_t x,uint8_t y,int32_t num, uint8_t len, uint8_t size2)
+{         	
+
 } 
 
 void check_stack_usage() {
