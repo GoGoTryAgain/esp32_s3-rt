@@ -16,8 +16,71 @@ static i2c_master_dev_handle_t I2C_dev_handle = NULL;
 static i2c_master_bus_handle_t I2C_bus_handle = NULL;
 
 SemaphoreHandle_t gInitSem;
+SemaphoreHandle_t gOledBuf_Mutex = NULL;
 
+
+// func declare
 void ShowMpu60xData(void *arg);
+
+
+
+uint8_t OLED_GRAM[MAX_PAGE_SIZE][MAX_CLOLUMN_SIZE] = {0};   
+
+
+
+void OLED_WR_Byte(unsigned data,unsigned DataMode)
+{
+    esp_err_t ret;
+    uint8_t write_buf[2] = {0};
+    if (DataMode != 0) {
+        write_buf[0] = 0x40; // data mode
+        write_buf[1] = data;
+        ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+    } else {
+        write_buf[0] = 0x00; // Command mode
+        write_buf[1] = data;
+        ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+    }
+    if (ret != ESP_OK) {
+        ESP_LOGI(TAG, "I2C transmit failed， ack error!:%d", ret);
+    }
+}
+
+void SendWholeOledBuffer()
+{
+    esp_err_t ret;
+    uint8_t buf[129]; // 1个0x40 + 128个数据字节
+    
+    // ESP_LOGI(TAG, "enter");
+    // if (xSemaphoreTake(gOledBuf_Mutex, pdMS_TO_TICKS(1000) != pdTRUE)) {
+    //     ESP_LOGE(TAG, "get lock failed");
+    // }
+    
+    // xSemaphoreGive(gOledBuf_Mutex);
+
+    for (int i = 0; i < MAX_PAGE_SIZE; i++) {
+        
+        // ESP_LOGI(TAG, "set page %d", i);
+        OLED_WR_Byte(PAGE_ADDR + i,OLED_CMD);//--set page address
+		OLED_WR_Byte (0x00,OLED_CMD);  // set column low   use 0000
+		OLED_WR_Byte (0x10,OLED_CMD);  // column high is 0010 0000   use low 0000
+
+        buf[0] = CMD_MODE;  // Command mode
+        memcpy(&buf[1], OLED_GRAM[i], MAX_CLOLUMN_SIZE);
+        ret = i2c_master_transmit(I2C_dev_handle, buf, sizeof(buf), I2C_MASTER_TIMEOUT_MS);
+        if (ret != ESP_OK) {
+            ESP_LOGE(TAG, "I2C transmit failed:%d", ret);
+        }
+        
+    }
+}
+
+
+void OLED_Clear(void)  
+{
+    memset(OLED_GRAM, 0 ,sizeof(OLED_GRAM));
+    SendWholeOledBuffer();
+}
 
 uint32_t GetDigitCount(int num)
 {
@@ -32,23 +95,7 @@ uint32_t GetDigitCount(int num)
     return count;
 }
 
-void OLED_WR_Byte(unsigned data,unsigned DataMode)
-{
-    esp_err_t ret;
-    uint8_t write_buf[2] = {0};
-    if (DataMode != 0) {
-        write_buf[0] = 0x40; // Command mode
-        write_buf[1] = data;
-        ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
-    } else {
-        write_buf[0] = 0x00; // Command mode
-        write_buf[1] = data;
-        ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
-    }
-    if (ret != ESP_OK) {
-        ESP_LOGI(TAG, "I2C transmit failed， ack error!:%d", ret);
-    }
-}
+
 
 void OLED_RegInit(void)
 {
@@ -106,6 +153,11 @@ static void i2c_master_init()
 void OLED_Task_Init(void)
 {
     gInitSem = xSemaphoreCreateBinary();
+    gOledBuf_Mutex = xSemaphoreCreateMutex();
+    if (gOledBuf_Mutex == NULL) {
+        ESP_LOGE(TAG, "互斥锁创建失败");
+    }
+
     xTaskCreate(
         OLED_Init,   // 任务函数
         "oled_Init",      // 任务名
@@ -161,24 +213,12 @@ void ShowMpu60xData(void *arg)
             OLED_ShowString(0,4,"z:",16);  
             OLED_ShowNum(16, 4, recv_msg.z, GetDigitCount(recv_msg.z), 16);
         }
+        SendWholeOledBuffer();
     } 
 }
 
 
-void OLED_Clear(void)  
-{  
-	uint8_t i,n;		    
-	for(i=0;i<8;i++)  
-	{  
-		OLED_WR_Byte (0xb0+i,OLED_CMD);   
-		OLED_WR_Byte (0x00,OLED_CMD);
-		OLED_WR_Byte (0x10,OLED_CMD);
-		for(n=0;n<128;n++)
-        {
-            OLED_WR_Byte(0,OLED_DATA);
-        }
-	}
-}
+
 
 void OLED_Set_Pos(unsigned char x, unsigned char y) 
 { 	OLED_WR_Byte(0xb0+y,OLED_CMD);
@@ -202,40 +242,66 @@ void OLED_Display_Off(void)
 
 void OLED_ShowChar(uint8_t x,uint8_t y,uint8_t chr,uint8_t Char_Size)
 {      	
-	unsigned char c=0,i=0;	
-		c=chr-' ';
-		if(x>Max_Column-1){x=0;y=y+2;}
-		if(Char_Size ==16)
-			{
-			OLED_Set_Pos(x,y);	
-			for(i=0;i<8;i++)
-			OLED_WR_Byte(F8X16[c*16+i],OLED_DATA);
-			OLED_Set_Pos(x,y+1);
-			for(i=0;i<8;i++)
-			OLED_WR_Byte(F8X16[c*16+i+8],OLED_DATA);
-			}
-			else {	
-				OLED_Set_Pos(x,y);
-				for(i=0;i<6;i++)
-				OLED_WR_Byte(F6x8[c][i],OLED_DATA);
-				
-			}
+	uint8_t i = 0;
+    chr -= ' ';
+    if (x > Max_Column - 1) {
+        x = 0;
+        y = y + 2;
+    }
+    if (Char_Size ==16) {
+        for(i = 0; i < 8; i++) {
+            OLED_GRAM[y++][i] = F8X16[chr * 16 + i];
+        }
+        for ( i = 0; i < 8; i++) {
+            OLED_GRAM[y][i] = F8X16[chr * 16 + i];
+        }
+
+    } else if (Char_Size == 8) {	
+        for(i = 0; i < 6; i++) {
+            OLED_GRAM[y][i] = F6x8[chr][i];
+        }
+            
+    }
 }
 
 void OLED_ShowString(uint8_t x,uint8_t y,char *chr,uint8_t Char_Size)
 {
-	unsigned char j=0;
+	unsigned char j = 0;
 	while (chr[j]!='\0')
 	{	
-        OLED_ShowChar(x,y,chr[j],Char_Size);
-		x+=8;
-		if (x>120) {
-            x=0;
-            y+=2;
+        OLED_ShowChar(x, y, chr[j], Char_Size);
+		x += 8;
+		if (x > 120) {
+            x = 0;
+            y += 2;
         }
 		j++;
 	}
 }
+
+
+// void OLED_ShowChar(uint8_t x,uint8_t y,uint8_t chr,uint8_t Char_Size)
+// {      	
+// 	unsigned char c=0,i=0;	
+// 		c=chr-' ';
+// 		if(x>Max_Column-1){x=0;y=y+2;}
+// 		if(Char_Size ==16)
+// 			{
+// 			OLED_Set_Pos(x,y);	
+// 			for(i=0;i<8;i++)
+// 			OLED_WR_Byte(F8X16[c*16+i],OLED_DATA);
+// 			OLED_Set_Pos(x,y+1);
+// 			for(i=0;i<8;i++)
+// 			OLED_WR_Byte(F8X16[c*16+i+8],OLED_DATA);
+// 			}
+// 			else {	
+// 				OLED_Set_Pos(x,y);
+// 				for(i=0;i<6;i++)
+// 				OLED_WR_Byte(F6x8[c][i],OLED_DATA);
+				
+// 			}
+// }
+
 
 uint32_t oled_pow(uint8_t m,uint8_t n)
 {
@@ -267,11 +333,6 @@ void OLED_ShowNum(uint8_t x,uint8_t y, int32_t num,uint8_t len,uint8_t size2)
 		}
 	 	OLED_ShowChar(x+(size2/2)*t,y,temp+'0',size2); 
 	}
-} 
-
-void OLED_ShowNums(uint8_t x,uint8_t y,int32_t num, uint8_t len, uint8_t size2)
-{         	
-
 } 
 
 void check_stack_usage() {

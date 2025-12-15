@@ -16,7 +16,12 @@
 #define	Brightness	0xFF 
 #define X_WIDTH 	128
 #define Y_WIDTH 	64	
+#define MAX_PAGE_SIZE 8
+#define MAX_CLOLUMN_SIZE 128
 
+#define PAGE_ADDR   0xB0
+#define CMD_MODE 0x40
+#define DATA_MODE 0x00
 
 
 void OLED_Init(void *arg);
