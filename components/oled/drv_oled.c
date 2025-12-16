@@ -65,7 +65,7 @@ void SendWholeOledBuffer()
 		OLED_WR_Byte (0x00,OLED_CMD);  // set column low   use 0000
 		OLED_WR_Byte (0x10,OLED_CMD);  // column high is 0010 0000   use low 0000
 
-        buf[0] = CMD_MODE;  // Command mode
+        buf[0] = DATA_MODE;  // Command mode
         memcpy(&buf[1], OLED_GRAM[i], MAX_CLOLUMN_SIZE);
         ret = i2c_master_transmit(I2C_dev_handle, buf, sizeof(buf), I2C_MASTER_TIMEOUT_MS);
         if (ret != ESP_OK) {
@@ -73,6 +73,7 @@ void SendWholeOledBuffer()
         }
         
     }
+    memset(OLED_GRAM, 0 ,sizeof(OLED_GRAM));
 }
 
 
@@ -248,19 +249,15 @@ void OLED_ShowChar(uint8_t x,uint8_t y,uint8_t chr,uint8_t Char_Size)
         x = 0;
         y = y + 2;
     }
-    if (Char_Size ==16) {
-        for(i = 0; i < 8; i++) {
-            OLED_GRAM[y++][i] = F8X16[chr * 16 + i];
+    if (Char_Size == 16) {
+        for (i = 0; i < 8; i++) {
+            OLED_GRAM[y][x + i] = F8X16[chr * 16 + i];
+            OLED_GRAM[y+1][x + i] = F8X16[chr * 16 + i + 8];
         }
-        for ( i = 0; i < 8; i++) {
-            OLED_GRAM[y][i] = F8X16[chr * 16 + i];
-        }
-
     } else if (Char_Size == 8) {	
         for(i = 0; i < 6; i++) {
-            OLED_GRAM[y][i] = F6x8[chr][i];
+            OLED_GRAM[y][x + i] = F6x8[chr][i];
         }
-            
     }
 }
 
@@ -268,7 +265,7 @@ void OLED_ShowString(uint8_t x,uint8_t y,char *chr,uint8_t Char_Size)
 {
 	unsigned char j = 0;
 	while (chr[j]!='\0')
-	{	
+	{
         OLED_ShowChar(x, y, chr[j], Char_Size);
 		x += 8;
 		if (x > 120) {
@@ -311,6 +308,8 @@ uint32_t oled_pow(uint8_t m,uint8_t n)
 }
 void OLED_ShowNum(uint8_t x,uint8_t y, int32_t num,uint8_t len,uint8_t size2)
 {         	
+    // OLED_ShowChar(x,y,num+'0',size2); 
+    // return;
 	uint8_t t,temp;
 	uint8_t enshow=0;		
     if (num < 0) {

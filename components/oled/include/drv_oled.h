@@ -20,8 +20,8 @@
 #define MAX_CLOLUMN_SIZE 128
 
 #define PAGE_ADDR   0xB0
-#define CMD_MODE 0x40
-#define DATA_MODE 0x00
+#define CMD_MODE 0x00
+#define DATA_MODE 0x40
 
 
 void OLED_Init(void *arg);
