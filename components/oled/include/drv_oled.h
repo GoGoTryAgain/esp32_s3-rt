@@ -23,6 +23,8 @@
 #define CMD_MODE 0x00
 #define DATA_MODE 0x40
 
+#define CHAR_WIDTH_16 16
+#define CHAR_WIDTH_8 8
 
 void OLED_Init(void *arg);
 void OLED_Clear(void);

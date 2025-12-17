@@ -18,9 +18,13 @@ static i2c_master_bus_handle_t I2C_bus_handle = NULL;
 SemaphoreHandle_t gInitSem;
 SemaphoreHandle_t gOledBuf_Mutex = NULL;
 
+uint8_t g_isNeedUpdate = 0;
 
 // func declare
-void ShowMpu60xData(void *arg);
+void HandleReceiveData(void *arg);
+void OLED_RegInit(void);
+static void i2c_master_init();
+void ShowOledContent(void *arg);
 
 
 
@@ -46,17 +50,30 @@ void OLED_WR_Byte(unsigned data,unsigned DataMode)
     }
 }
 
+void OLED_Init(void *arg)
+{ 	
+    i2c_master_init();
+    OLED_RegInit();
+    OLED_Clear(); 
+    ESP_LOGI(TAG, "to send sem");
+    xSemaphoreGive(gInitSem); // 释放信号量
+    vTaskDelete(NULL); // 删除当前任务，不会触发错误
+}  
+
 void SendWholeOledBuffer()
 {
     esp_err_t ret;
     uint8_t buf[129]; // 1个0x40 + 128个数据字节
     
     // ESP_LOGI(TAG, "enter");
-    // if (xSemaphoreTake(gOledBuf_Mutex, pdMS_TO_TICKS(1000) != pdTRUE)) {
-    //     ESP_LOGE(TAG, "get lock failed");
-    // }
-    
-    // xSemaphoreGive(gOledBuf_Mutex);
+    if (xSemaphoreTake(gOledBuf_Mutex, pdMS_TO_TICKS(200) != pdTRUE)) {
+        ESP_LOGE(TAG, "get lock failed");
+        return;
+    }
+    if (!g_isNeedUpdate) {
+        xSemaphoreGive(gOledBuf_Mutex);
+        return;
+    }
 
     for (int i = 0; i < MAX_PAGE_SIZE; i++) {
         
@@ -74,6 +91,7 @@ void SendWholeOledBuffer()
         
     }
     memset(OLED_GRAM, 0 ,sizeof(OLED_GRAM));
+    xSemaphoreGive(gOledBuf_Mutex);
 }
 
 
@@ -95,8 +113,6 @@ uint32_t GetDigitCount(int num)
     }
     return count;
 }
-
-
 
 void OLED_RegInit(void)
 {
@@ -138,16 +154,16 @@ void OLED_RegInit(void)
 
 static void i2c_master_init()
 {
-    I2C_bus_handle = GetI2CBusHandle(I2C_MASTER_NUM);
-    ESP_ERROR_CHECK(I2C_bus_handle != NULL ? ESP_OK : ESP_FAIL);
+    // I2C_bus_handle = GetI2CBusHandle(I2C_MASTER_INDEX);
+    // ESP_ERROR_CHECK(I2C_bus_handle != NULL ? ESP_OK : ESP_FAIL);
 
-
+    
     i2c_device_config_t dev_config = {
         .dev_addr_length = I2C_ADDR_BIT_LEN_7,
         .device_address = OLED_ADDR,
         .scl_speed_hz = I2C_MASTER_FREQ_HZ,
     };
-    ESP_ERROR_CHECK(i2c_master_bus_add_device(I2C_bus_handle, &dev_config, &I2C_dev_handle));
+    ESP_ERROR_CHECK(I2C_register_Device(I2C_MASTER_INDEX, &dev_config, &I2C_dev_handle));
 }
 
 
@@ -176,7 +192,7 @@ void OLED_Task_Init(void)
     //     &show_example_handle
     // );
     xTaskCreate(
-        ShowMpu60xData,
+        HandleReceiveData,
         "ShowMpu60xData",
         8192,
         NULL,
@@ -184,20 +200,28 @@ void OLED_Task_Init(void)
         NULL
     );
 
+    xTaskCreate(
+        ShowOledContent,
+        "ShowOledContent",
+        8192,
+        NULL,
+        3,
+        NULL
+    );
+
     UBaseType_t stack_words = uxTaskGetStackHighWaterMark(show_example_handle);
     ESP_LOGI(TAG, "stack size: %d words", stack_words);
 }
-void OLED_Init(void *arg)
-{ 	
-    i2c_master_init();
-    OLED_RegInit();
-    OLED_Clear(); 
-    ESP_LOGI(TAG, "to send sem");
-    xSemaphoreGive(gInitSem); // 释放信号量
-    vTaskDelete(NULL); // 删除当前任务，不会触发错误
-}  
 
-void ShowMpu60xData(void *arg)
+// char_size 字符表中，每个字符所占字节数，也是x轴字所占列数
+void OLEDShowNumWithString(uint8_t x, uint8_t y, char *label, int32_t num, uint8_t Char_Size)
+{
+    OLED_ShowString(x, y, label, Char_Size);
+    ESP_LOGI(TAG, "x is %d", strlen(label) * Char_Size);
+    OLED_ShowNum(x + strlen(label) * Char_Size,  y, num, GetDigitCount(num), Char_Size);
+}
+
+void HandleReceiveData(void *arg)
 {
     AccMsg_t recv_msg;
     for (;;) {
@@ -207,19 +231,21 @@ void ShowMpu60xData(void *arg)
             show_example_handle = NULL;
         }
         if (ret == pdTRUE) {
-            OLED_ShowString(0,0,"x:",16);  
-            OLED_ShowNum(16, 0, recv_msg.x, GetDigitCount(recv_msg.x), 16);
-            OLED_ShowString(0,2,"y:",16);  
-            OLED_ShowNum(16, 2, recv_msg.y, GetDigitCount(recv_msg.y), 16);
-            OLED_ShowString(0,4,"z:",16);  
-            OLED_ShowNum(16, 4, recv_msg.z, GetDigitCount(recv_msg.z), 16);
+            OLEDShowNumWithString(0, 0,"x:", recv_msg.x, CHAR_WIDTH_16);
+            OLEDShowNumWithString(0, 2,"y:", recv_msg.y, CHAR_WIDTH_16);
+            OLEDShowNumWithString(0, 4,"z:", recv_msg.z, CHAR_WIDTH_16);
         }
-        SendWholeOledBuffer();
+        
     } 
 }
 
-
-
+void ShowOledContent(void *arg)
+{
+    for (;;) {
+        SendWholeOledBuffer();
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+    }
+}
 
 void OLED_Set_Pos(unsigned char x, unsigned char y) 
 { 	OLED_WR_Byte(0xb0+y,OLED_CMD);
@@ -242,7 +268,7 @@ void OLED_Display_Off(void)
 }	
 
 void OLED_ShowChar(uint8_t x,uint8_t y,uint8_t chr,uint8_t Char_Size)
-{      	
+{
 	uint8_t i = 0;
     chr -= ' ';
     if (x > Max_Column - 1) {
@@ -259,10 +285,12 @@ void OLED_ShowChar(uint8_t x,uint8_t y,uint8_t chr,uint8_t Char_Size)
             OLED_GRAM[y][x + i] = F6x8[chr][i];
         }
     }
+    g_isNeedUpdate = true;
 }
 
 void OLED_ShowString(uint8_t x,uint8_t y,char *chr,uint8_t Char_Size)
 {
+    xSemaphoreTake(gOledBuf_Mutex, portMAX_DELAY);	
 	unsigned char j = 0;
 	while (chr[j]!='\0')
 	{
@@ -274,31 +302,8 @@ void OLED_ShowString(uint8_t x,uint8_t y,char *chr,uint8_t Char_Size)
         }
 		j++;
 	}
+    xSemaphoreGive(gOledBuf_Mutex);
 }
-
-
-// void OLED_ShowChar(uint8_t x,uint8_t y,uint8_t chr,uint8_t Char_Size)
-// {      	
-// 	unsigned char c=0,i=0;	
-// 		c=chr-' ';
-// 		if(x>Max_Column-1){x=0;y=y+2;}
-// 		if(Char_Size ==16)
-// 			{
-// 			OLED_Set_Pos(x,y);	
-// 			for(i=0;i<8;i++)
-// 			OLED_WR_Byte(F8X16[c*16+i],OLED_DATA);
-// 			OLED_Set_Pos(x,y+1);
-// 			for(i=0;i<8;i++)
-// 			OLED_WR_Byte(F8X16[c*16+i+8],OLED_DATA);
-// 			}
-// 			else {	
-// 				OLED_Set_Pos(x,y);
-// 				for(i=0;i<6;i++)
-// 				OLED_WR_Byte(F6x8[c][i],OLED_DATA);
-				
-// 			}
-// }
-
 
 uint32_t oled_pow(uint8_t m,uint8_t n)
 {
@@ -306,15 +311,14 @@ uint32_t oled_pow(uint8_t m,uint8_t n)
 	while(n--)result*=m;    
 	return result;
 }
-void OLED_ShowNum(uint8_t x,uint8_t y, int32_t num,uint8_t len,uint8_t size2)
-{         	
-    // OLED_ShowChar(x,y,num+'0',size2); 
-    // return;
+void OLED_ShowNum(uint8_t x,uint8_t y, int32_t num,uint8_t len, uint8_t widthPerchar)
+{
 	uint8_t t,temp;
-	uint8_t enshow=0;		
+	uint8_t enshow=0;
+    xSemaphoreTake(gOledBuf_Mutex, portMAX_DELAY);	
     if (num < 0) {
-        OLED_ShowChar(x,y,'-',size2);
-        x += size2/2;
+        OLED_ShowChar(x, y, '-', widthPerchar);
+        x += widthPerchar / 2;
         num = -num;
         len--;
     }				   
@@ -325,13 +329,14 @@ void OLED_ShowNum(uint8_t x,uint8_t y, int32_t num,uint8_t len,uint8_t size2)
 		{
 			if(temp==0)
 			{
-				OLED_ShowChar(x+(size2/2)*t,y,' ',size2);
+				OLED_ShowChar(x+(widthPerchar/2)*t,y,' ',widthPerchar);
 				continue;
 			}else enshow=1; 
 		 	 
 		}
-	 	OLED_ShowChar(x+(size2/2)*t,y,temp+'0',size2); 
+	 	OLED_ShowChar(x+(widthPerchar/2)*t,y,temp+'0',widthPerchar); 
 	}
+    xSemaphoreGive(gOledBuf_Mutex);
 } 
 
 void check_stack_usage() {

@@ -17,7 +17,7 @@ static i2c_master_bus_handle_t I2C_bus_handle = NULL;
 
 static esp_err_t i2c_master_init()
 {
-    I2C_bus_handle = GetI2CBusHandle(I2C_MASTER_NUM);
+    I2C_bus_handle = GetI2CBusHandle(I2C_MASTER_INDEX);
     if (I2C_bus_handle == NULL) {
         ESP_LOGE(TAG, "Failed to get I2C bus handle");
         return ESP_FAIL;
