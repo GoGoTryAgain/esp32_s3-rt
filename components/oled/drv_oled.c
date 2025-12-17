@@ -13,7 +13,6 @@ static const char *TAG = "oled_driver";
 TaskHandle_t show_example_handle = NULL;
 
 static i2c_master_dev_handle_t I2C_dev_handle = NULL;
-static i2c_master_bus_handle_t I2C_bus_handle = NULL;
 
 SemaphoreHandle_t gInitSem;
 SemaphoreHandle_t gOledBuf_Mutex = NULL;
@@ -66,7 +65,7 @@ void SendWholeOledBuffer()
     uint8_t buf[129]; // 1个0x40 + 128个数据字节
     
     // ESP_LOGI(TAG, "enter");
-    if (xSemaphoreTake(gOledBuf_Mutex, pdMS_TO_TICKS(200) != pdTRUE)) {
+    if (xSemaphoreTake(gOledBuf_Mutex, pdMS_TO_TICKS(200)) != pdTRUE) {
         ESP_LOGE(TAG, "get lock failed");
         return;
     }
@@ -91,6 +90,7 @@ void SendWholeOledBuffer()
         
     }
     memset(OLED_GRAM, 0 ,sizeof(OLED_GRAM));
+    g_isNeedUpdate = 0;
     xSemaphoreGive(gOledBuf_Mutex);
 }
 
@@ -218,7 +218,7 @@ void OLEDShowNumWithString(uint8_t x, uint8_t y, char *label, int32_t num, uint8
 {
     OLED_ShowString(x, y, label, Char_Size);
     ESP_LOGI(TAG, "x is %d", strlen(label) * Char_Size);
-    OLED_ShowNum(x + strlen(label) * Char_Size,  y, num, GetDigitCount(num), Char_Size);
+    OLED_ShowNum(x + strlen(label) * Char_Size / 2,  y, num, GetDigitCount(num), Char_Size);
 }
 
 void HandleReceiveData(void *arg)
