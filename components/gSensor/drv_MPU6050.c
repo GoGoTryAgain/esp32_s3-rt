@@ -10,8 +10,7 @@
 
 static const char *TAG = "MPU6050";
 
-static i2c_master_dev_handle_t I2C_dev_handle = NULL;
-
+static i2c_dev_t I2C_cdev;
 
 
 static esp_err_t i2c_master_init()
@@ -21,7 +20,8 @@ static esp_err_t i2c_master_init()
         .device_address = MPU6050_ADDRESS_ADDRESS,
         .scl_speed_hz = I2C_MASTER_FREQ_HZ,
     };
-    ESP_ERROR_CHECK(I2C_register_Device(I2C_MASTER_INDEX, &dev_config, &I2C_dev_handle));
+    I2C_cdev.portIndex = I2C_MASTER_INDEX;
+    ESP_ERROR_CHECK(I2C_register_Device(I2C_cdev.portIndex, &dev_config, &I2C_cdev.i2c_dev));
     return ESP_OK;
 }
 
@@ -57,7 +57,7 @@ static esp_err_t i2c_master_init()
  */
 void SetClockSource(uint8_t source) 
 {
-    I2C_WriteBits(I2C_dev_handle, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
+    I2C_WriteBits(I2C_cdev, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_CLKSEL_BIT, MPU6050_PWR1_CLKSEL_LENGTH, source);
 }
 
 /** Set full-scale gyroscope range.
@@ -71,7 +71,7 @@ void SetClockSource(uint8_t source)
 void SetFullScaleGyroRange(uint8_t range) 
 
 {
-    I2C_WriteBits(I2C_dev_handle, MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
+    I2C_WriteBits(I2C_cdev, MPU6050_RA_GYRO_CONFIG, MPU6050_GCONFIG_FS_SEL_BIT, MPU6050_GCONFIG_FS_SEL_LENGTH, range);
 }
 
 /** Set full-scale accelerometer range.
@@ -80,7 +80,7 @@ void SetFullScaleGyroRange(uint8_t range)
  */
 void SetFullScaleAccelRange(uint8_t range)
 {
-    I2C_WriteBits(I2C_dev_handle, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
+    I2C_WriteBits(I2C_cdev, MPU6050_RA_ACCEL_CONFIG, MPU6050_ACONFIG_AFS_SEL_BIT, MPU6050_ACONFIG_AFS_SEL_LENGTH, range);
 }
 
 /** Set sleep mode status.
@@ -91,7 +91,7 @@ void SetFullScaleAccelRange(uint8_t range)
  */
 void SetSleepEnabled(uint8_t enabled) 
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_PWR_MGMT_1, MPU6050_PWR1_SLEEP_BIT, enabled);
 }
 
 
@@ -103,7 +103,7 @@ void SetSleepEnabled(uint8_t enabled)
  */
 bool GetTempFIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set temperature FIFO enabled value.
@@ -113,7 +113,7 @@ bool GetTempFIFOEnabled() {
  */
 void SetTempFIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_TEMP_FIFO_EN_BIT, enabled);
 }
 /** Get gyroscope X-axis FIFO enabled value.
  * When set to 1, this bit enables GYRO_XOUT_H and GYRO_XOUT_L (Registers 67 and
@@ -123,7 +123,7 @@ void SetTempFIFOEnabled(bool enabled)
  */
 bool GetXGyroFIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set gyroscope X-axis FIFO enabled value.
@@ -133,7 +133,7 @@ bool GetXGyroFIFOEnabled() {
  */
 void SetXGyroFIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_XG_FIFO_EN_BIT, enabled);
 }
 /** Get gyroscope Y-axis FIFO enabled value.
  * When set to 1, this bit enables GYRO_YOUT_H and GYRO_YOUT_L (Registers 69 and
@@ -143,7 +143,7 @@ void SetXGyroFIFOEnabled(bool enabled)
  */
 bool GetYGyroFIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set gyroscope Y-axis FIFO enabled value.
@@ -153,7 +153,7 @@ bool GetYGyroFIFOEnabled() {
  */
 void SetYGyroFIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_YG_FIFO_EN_BIT, enabled);
 }
 /** Get gyroscope Z-axis FIFO enabled value.
  * When set to 1, this bit enables GYRO_ZOUT_H and GYRO_ZOUT_L (Registers 71 and
@@ -163,7 +163,7 @@ void SetYGyroFIFOEnabled(bool enabled)
  */
 bool GetZGyroFIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set gyroscope Z-axis FIFO enabled value.
@@ -173,7 +173,7 @@ bool GetZGyroFIFOEnabled() {
  */
 void SetZGyroFIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_ZG_FIFO_EN_BIT, enabled);
 }
 /** Get accelerometer FIFO enabled value.
  * When set to 1, this bit enables ACCEL_XOUT_H, ACCEL_XOUT_L, ACCEL_YOUT_H,
@@ -184,7 +184,7 @@ void SetZGyroFIFOEnabled(bool enabled)
  */
 bool GetAccelFIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set accelerometer FIFO enabled value.
@@ -194,7 +194,7 @@ bool GetAccelFIFOEnabled() {
  */
 void SetAccelFIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_ACCEL_FIFO_EN_BIT, enabled);
 }
 /** Get Slave 2 FIFO enabled value.
  * When set to 1, this bit enables EXT_SENS_DATA registers (Registers 73 to 96)
@@ -204,7 +204,7 @@ void SetAccelFIFOEnabled(bool enabled)
  */
 bool GetSlave2FIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set Slave 2 FIFO enabled value.
@@ -214,7 +214,7 @@ bool GetSlave2FIFOEnabled() {
  */
 void SetSlave2FIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_SLV2_FIFO_EN_BIT, enabled);
 }
 /** Get Slave 1 FIFO enabled value.
  * When set to 1, this bit enables EXT_SENS_DATA registers (Registers 73 to 96)
@@ -224,7 +224,7 @@ void SetSlave2FIFOEnabled(bool enabled)
  */
 bool GetSlave1FIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set Slave 1 FIFO enabled value.
@@ -234,7 +234,7 @@ bool GetSlave1FIFOEnabled() {
  */
 void SetSlave1FIFOEnabled(bool enabled) 
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_SLV1_FIFO_EN_BIT, enabled);
 }
 /** Get Slave 0 FIFO enabled value.
  * When set to 1, this bit enables EXT_SENS_DATA registers (Registers 73 to 96)
@@ -244,7 +244,7 @@ void SetSlave1FIFOEnabled(bool enabled)
  */
 bool GetSlave0FIFOEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set Slave 0 FIFO enabled value.
@@ -254,7 +254,7 @@ bool GetSlave0FIFOEnabled() {
  */
 void SetSlave0FIFOEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_FIFO_EN, MPU6050_SLV0_FIFO_EN_BIT, enabled);
 }
 
 // I2C_MST_CTRL register
@@ -277,7 +277,7 @@ void SetSlave0FIFOEnabled(bool enabled)
 bool GetMultiMasterEnabled()
 {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT, &data);
     return data;
 }
 /** Set multi-master enabled value.
@@ -286,7 +286,7 @@ bool GetMultiMasterEnabled()
  * @see MPU6050_RA_I2C_MST_CTRL
  */
 void SetMultiMasterEnabled(bool enabled) {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_MULT_MST_EN_BIT, enabled);
 }
 /** Get wait-for-external-sensor-data enabled value.
  * When the WAIT_FOR_ES bit is set to 1, the Data Ready interrupt will be
@@ -302,7 +302,7 @@ void SetMultiMasterEnabled(bool enabled) {
 bool GetWaitForExternalSensorEnabled()
 {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT, &data);
     return data;
 }
 /** Set wait-for-external-sensor-data enabled value.
@@ -311,7 +311,7 @@ bool GetWaitForExternalSensorEnabled()
  * @see MPU6050_RA_I2C_MST_CTRL
  */
 void setWaitForExternalSensorEnabled(bool enabled) {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_WAIT_FOR_ES_BIT, enabled);
 }
 /** Get Slave 3 FIFO enabled value.
  * When set to 1, this bit enables EXT_SENS_DATA registers (Registers 73 to 96)
@@ -322,7 +322,7 @@ void setWaitForExternalSensorEnabled(bool enabled) {
 bool GetSlave3FIFOEnabled()
 {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT, &data);
     return data;
 }
 /** Set Slave 3 FIFO enabled value.
@@ -331,7 +331,7 @@ bool GetSlave3FIFOEnabled()
  * @see MPU6050_RA_MST_CTRL
  */
 void setSlave3FIFOEnabled(bool enabled) {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_SLV_3_FIFO_EN_BIT, enabled);
 }
 /** Get slave read/write transition enabled value.
  * The I2C_MST_P_NSR bit configures the I2C Master's transition from one slave
@@ -345,7 +345,7 @@ void setSlave3FIFOEnabled(bool enabled) {
  */
 bool GetSlaveReadWriteTransitionEnabled() {
     uint8_t data = 0;
-    I2C_ReadBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT, &data);
+    I2C_ReadBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT, &data);
     return data;
 }
 /** Set slave read/write transition enabled value.
@@ -355,7 +355,7 @@ bool GetSlaveReadWriteTransitionEnabled() {
  */
 void SetSlaveReadWriteTransitionEnabled(bool enabled)
 {
-    I2C_WriteBit(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT, enabled);
+    I2C_WriteBit(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_P_NSR_BIT, enabled);
 }
 /** Get I2C master clock speed.
  * I2C_MST_CLK is a 4 bit unsigned value which configures a divider on the
@@ -388,7 +388,7 @@ void SetSlaveReadWriteTransitionEnabled(bool enabled)
  */
 uint8_t getMasterClockSpeed() {
     uint8_t data = 0;
-    I2C_ReadBits(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, &data);
+    I2C_ReadBits(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, &data);
     return data;
 }
 /** Set I2C master clock speed.
@@ -397,7 +397,7 @@ uint8_t getMasterClockSpeed() {
  */
 void SetMasterClockSpeed(uint8_t speed)
 {
-    I2C_WriteBits(I2C_dev_handle, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, speed);
+    I2C_WriteBits(I2C_cdev, MPU6050_RA_I2C_MST_CTRL, MPU6050_I2C_MST_CLK_BIT, MPU6050_I2C_MST_CLK_LENGTH, speed);
 }
 
 /** Get 3-axis accelerometer readings.
@@ -438,7 +438,7 @@ void SetMasterClockSpeed(uint8_t speed)
  */
 void GetAcceleration(int16_t* x, int16_t* y, int16_t* z) {
     uint8_t buffer[6];
-    I2C_ReadBytes(I2C_dev_handle, MPU6050_RA_ACCEL_XOUT_H, 6, buffer);
+    I2C_ReadBytes(I2C_cdev, MPU6050_RA_ACCEL_XOUT_H, 6, buffer);
     *x = (((int16_t)buffer[0]) << 8) | buffer[1];
     *y = (((int16_t)buffer[2]) << 8) | buffer[3];
     *z = (((int16_t)buffer[4]) << 8) | buffer[5];
@@ -451,7 +451,7 @@ void GetAcceleration(int16_t* x, int16_t* y, int16_t* z) {
 int16_t GetAccelerationX() 
 {
     uint8_t buffer[2];
-    I2C_ReadBytes(I2C_dev_handle, MPU6050_RA_ACCEL_XOUT_H, 2, buffer);
+    I2C_ReadBytes(I2C_cdev, MPU6050_RA_ACCEL_XOUT_H, 2, buffer);
     return (((int16_t)buffer[0]) << 8) | buffer[1];
 }
 /** Get Y-axis accelerometer reading.
@@ -462,7 +462,7 @@ int16_t GetAccelerationX()
 int16_t GetAccelerationY()
 {
     uint8_t buffer[2];
-    I2C_ReadBytes(I2C_dev_handle, MPU6050_RA_ACCEL_YOUT_H, 2, buffer);
+    I2C_ReadBytes(I2C_cdev, MPU6050_RA_ACCEL_YOUT_H, 2, buffer);
     return (((int16_t)buffer[0]) << 8) | buffer[1];
 }
 /** Get Z-axis accelerometer reading.
@@ -473,7 +473,7 @@ int16_t GetAccelerationY()
 int16_t GetAccelerationZ()
 {
     uint8_t buffer[2];
-    I2C_ReadBytes(I2C_dev_handle, MPU6050_RA_ACCEL_ZOUT_H, 2, buffer);
+    I2C_ReadBytes(I2C_cdev, MPU6050_RA_ACCEL_ZOUT_H, 2, buffer);
     return (((int16_t)buffer[0]) << 8) | buffer[1];
 }
 
@@ -486,7 +486,7 @@ int16_t GetAccelerationZ()
 int16_t GetTemperature()
 {
     uint8_t buffer[2];
-    I2C_ReadBytes(I2C_dev_handle, MPU6050_RA_TEMP_OUT_H, 2, buffer);
+    I2C_ReadBytes(I2C_cdev, MPU6050_RA_TEMP_OUT_H, 2, buffer);
     return (((int16_t)buffer[0]) << 8) | buffer[1];
 }
 
@@ -496,8 +496,8 @@ void MPU6050_WhoAmI()
     uint8_t tmpdata = 0;
     uint8_t reg_addr = MPU6050_WHO_AM_I_ADDR;
     uint8_t length = 1;
-    //I2C_ReadByte(I2C_dev_handle, &reg_addr, &tmpdata);
-    esp_err_t err = i2c_master_transmit_receive(I2C_dev_handle, &reg_addr, sizeof(reg_addr), &tmpdata, length, I2C_MASTER_TIMEOUT_MS);
+    //I2C_ReadByte(I2C_cdev, &reg_addr, &tmpdata);
+    esp_err_t err = i2c_master_transmit_receive(I2C_cdev.i2c_dev, &reg_addr, sizeof(reg_addr), &tmpdata, length, I2C_MASTER_TIMEOUT_MS);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to read MPU6050_WHO_AM_I_ADDR");
         return;
@@ -538,7 +538,7 @@ void MPU6050_Init(void *arg)
         ESP_LOGI(TAG, "ax: %d, ay: %d, az: %d, t: %d", accData.x, accData.y, accData.z, t);
 
         xQueueSend(g_msgQueue.msgQueueAcc, &accData, portMAX_DELAY);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(200 / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL); // 删除当前任务，不会触发错误

@@ -12,7 +12,7 @@
 static const char *TAG = "oled_driver";
 TaskHandle_t show_example_handle = NULL;
 
-static i2c_master_dev_handle_t I2C_dev_handle = NULL;
+static i2c_dev_t I2C_dev;
 
 SemaphoreHandle_t gInitSem;
 SemaphoreHandle_t gOledBuf_Mutex = NULL;
@@ -38,11 +38,11 @@ void OLED_WR_Byte(unsigned data,unsigned DataMode)
     if (DataMode != 0) {
         write_buf[0] = 0x40; // data mode
         write_buf[1] = data;
-        ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+        ret = i2c_master_transmit(I2C_dev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
     } else {
         write_buf[0] = 0x00; // Command mode
         write_buf[1] = data;
-        ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+        ret = i2c_master_transmit(I2C_dev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
     }
     if (ret != ESP_OK) {
         ESP_LOGI(TAG, "I2C transmit failed， ack error!:%d", ret);
@@ -83,7 +83,7 @@ void SendWholeOledBuffer()
 
         buf[0] = DATA_MODE;  // Command mode
         memcpy(&buf[1], OLED_GRAM[i], MAX_CLOLUMN_SIZE);
-        ret = i2c_master_transmit(I2C_dev_handle, buf, sizeof(buf), I2C_MASTER_TIMEOUT_MS);
+        ret = i2c_master_transmit(I2C_dev.i2c_dev, buf, sizeof(buf), I2C_MASTER_TIMEOUT_MS);
         if (ret != ESP_OK) {
             ESP_LOGE(TAG, "I2C transmit failed:%d", ret);
         }
@@ -163,7 +163,8 @@ static void i2c_master_init()
         .device_address = OLED_ADDR,
         .scl_speed_hz = I2C_MASTER_FREQ_HZ,
     };
-    ESP_ERROR_CHECK(I2C_register_Device(I2C_MASTER_INDEX, &dev_config, &I2C_dev_handle));
+    I2C_dev.portIndex = I2C_MASTER_INDEX;
+    ESP_ERROR_CHECK(I2C_register_Device(I2C_dev.portIndex, &dev_config, &I2C_dev.i2c_dev));
 }
 
 

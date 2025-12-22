@@ -9,20 +9,14 @@ static const char *TAG = "I2C_CTRL";
 #define I2C_DEVICE_BUS_MAP_MAX 10
 
 static i2c_master_bus_handle_t I2C_bus_handle[2] = {NULL};
+SemaphoreHandle_t bus_lock_mux[I2C_NUM_MAX] = {NULL};
 
-typedef struct {
-    uintptr_t dev_handle_addr; // 设备句柄的地址（指针值），作为键
-    i2c_port_t i2c_num;        // 对应的I2C端口号，作为值
-} i2c_dev_num_map_t;
-
-i2c_dev_num_map_t i2c_dev_num_map[I2C_DEVICE_BUS_MAP_MAX] = {{0}};
-
-void LockI2CTransfer(i2c_master_dev_handle_t I2C_dev_handle, uint8_t lockEn)
+void LockI2CTransfer(i2c_dev_t I2C_cdev, uint8_t lockEn)
 {
     if (lockEn) {
-        xSemaphoreTake(I2C_dev_handle->master_bus->bus_lock_mux, portMAX_DELAY);
+        xSemaphoreTake(bus_lock_mux[I2C_cdev.portIndex], portMAX_DELAY);
     } else {
-        xSemaphoreGive(I2C_dev_handle->master_bus->bus_lock_mux);
+        xSemaphoreGive(bus_lock_mux[I2C_cdev.portIndex]);
     }
 }
 
@@ -75,7 +69,7 @@ static void I2c_master_init(i2c_port_t i2c_num)
     }
 
     ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &I2C_bus_handle[i2c_num])); 
-
+    bus_lock_mux[i2c_num] = xSemaphoreCreateMutex();
 }
 
 i2c_master_bus_handle_t GetI2CBusHandle(i2c_port_t i2c_num)
@@ -96,15 +90,6 @@ esp_err_t I2C_register_Device(i2c_port_t i2c_num, i2c_device_config_t *dev_cfg, 
     }
 
     esp_err_t ret = i2c_master_bus_add_device(GetI2CBusHandle(i2c_num), dev_cfg, dev_handle);
-    if (ret == ESP_OK) {
-        for (uint8_t i = 0; i < I2C_DEVICE_BUS_MAP_MAX; i++) {
-            if (i2c_dev_num_map[i].dev_handle_addr == 0) {
-                i2c_dev_num_map[i].dev_handle_addr = (uintptr_t)dev_handle;
-                i2c_dev_num_map[i].i2c_num = i2c_num;
-                break;
-            }
-        }
-    }
     return ret;
 }
 
@@ -113,41 +98,41 @@ void I2C_Unregister_Device(i2c_master_dev_handle_t dev_handle)
     i2c_master_bus_rm_device(dev_handle);
 }
 
-void I2C_ReadBytes(i2c_master_dev_handle_t I2C_dev_handle, uint8_t regAddr, uint8_t length, uint8_t *data)
+void I2C_ReadBytes(i2c_dev_t I2C_cdev, uint8_t regAddr, uint8_t length, uint8_t *data)
 {
     uint8_t read_buffer[length];
-    LockI2CTransfer(I2C_dev_handle, 1);
-    ESP_ERROR_CHECK(i2c_master_transmit_receive(I2C_dev_handle, &regAddr, sizeof(regAddr), read_buffer, length, I2C_MASTER_TIMEOUT_MS));
-    LockI2CTransfer(I2C_dev_handle, 0);
+    LockI2CTransfer(I2C_cdev, 1);
+    ESP_ERROR_CHECK(i2c_master_transmit_receive(I2C_cdev.i2c_dev, &regAddr, sizeof(regAddr), read_buffer, length, I2C_MASTER_TIMEOUT_MS));
+    LockI2CTransfer(I2C_cdev, 0);
     memcpy(data, read_buffer, length);
 }
 
-void ReadByte(i2c_master_dev_handle_t I2C_dev_handle, uint8_t regAddr, uint8_t *data)
+void ReadByte(i2c_dev_t I2C_cdev, uint8_t regAddr, uint8_t *data)
 {
-    I2C_ReadBytes(I2C_dev_handle, regAddr, 1, data);
+    I2C_ReadBytes(I2C_cdev, regAddr, 1, data);
 }
 
-void I2C_ReadBit(i2c_master_dev_handle_t I2C_dev_handle, uint8_t regAddr, uint8_t bitNum, uint8_t *enable)
+void I2C_ReadBit(i2c_dev_t I2C_cdev, uint8_t regAddr, uint8_t bitNum, uint8_t *enable)
 {
     uint8_t tmpdata = 0;
-    ReadByte(I2C_dev_handle, regAddr, &tmpdata);
+    ReadByte(I2C_cdev, regAddr, &tmpdata);
     *enable = tmpdata & (1 << bitNum);
 }
 
-void I2C_ReadBits(i2c_master_dev_handle_t I2C_dev_handle, uint8_t regAddr, uint8_t bitStart, uint8_t length, uint8_t *data)
+void I2C_ReadBits(i2c_dev_t I2C_cdev, uint8_t regAddr, uint8_t bitStart, uint8_t length, uint8_t *data)
 {
     uint8_t tmpdata = 0;
-    ReadByte(I2C_dev_handle, regAddr, &tmpdata);
+    ReadByte(I2C_cdev, regAddr, &tmpdata);
     uint8_t mask = ((1 << length) - 1) << (bitStart - length + 1);
     tmpdata &= mask;
     tmpdata >>= (bitStart - length + 1);
     *data = tmpdata;
 }
 
-void I2C_WriteBit(i2c_master_dev_handle_t I2C_dev_handle, uint8_t reg_addr, uint8_t bitNum, uint8_t enable)
+void I2C_WriteBit(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t bitNum, uint8_t enable)
 {
     uint8_t tmpdata = 0;
-    ReadByte(I2C_dev_handle, reg_addr, &tmpdata);
+    ReadByte(I2C_cdev, reg_addr, &tmpdata);
 
     if (enable) {
         tmpdata |= (1 << bitNum);
@@ -158,16 +143,16 @@ void I2C_WriteBit(i2c_master_dev_handle_t I2C_dev_handle, uint8_t reg_addr, uint
     uint8_t write_buffer[2];
     write_buffer[0] = reg_addr;
     write_buffer[1] = tmpdata;
-    LockI2CTransfer(I2C_dev_handle, 1);
-    ESP_ERROR_CHECK(i2c_master_transmit(I2C_dev_handle, write_buffer, sizeof(write_buffer), I2C_MASTER_TIMEOUT_MS));
-    LockI2CTransfer(I2C_dev_handle, 0);
+    LockI2CTransfer(I2C_cdev, 1);
+    ESP_ERROR_CHECK(i2c_master_transmit(I2C_cdev.i2c_dev, write_buffer, sizeof(write_buffer), I2C_MASTER_TIMEOUT_MS));
+    LockI2CTransfer(I2C_cdev, 0);
 }
 
 
-void I2C_WriteBits(i2c_master_dev_handle_t I2C_dev_handle, uint8_t reg_addr, uint8_t bitStart, uint8_t length, uint8_t data)
+void I2C_WriteBits(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t bitStart, uint8_t length, uint8_t data)
 {
     uint8_t tmpdata = 0;
-    ReadByte(I2C_dev_handle, reg_addr, &tmpdata);
+    ReadByte(I2C_cdev, reg_addr, &tmpdata);
 
     uint8_t mask = ((1 << length) - 1) << bitStart;
     tmpdata &= ~mask;
@@ -176,16 +161,16 @@ void I2C_WriteBits(i2c_master_dev_handle_t I2C_dev_handle, uint8_t reg_addr, uin
     uint8_t write_buffer[2];
     write_buffer[0] = reg_addr;
     write_buffer[1] = tmpdata;
-    LockI2CTransfer(I2C_dev_handle, 1);
-    ESP_ERROR_CHECK(i2c_master_transmit(I2C_dev_handle, write_buffer, sizeof(write_buffer), I2C_MASTER_TIMEOUT_MS));
-    LockI2CTransfer(I2C_dev_handle, 0);
+    LockI2CTransfer(I2C_cdev, 1);
+    ESP_ERROR_CHECK(i2c_master_transmit(I2C_cdev.i2c_dev, write_buffer, sizeof(write_buffer), I2C_MASTER_TIMEOUT_MS));
+    LockI2CTransfer(I2C_cdev, 0);
 }
 
 
-esp_err_t I2C_WriteBytes(i2c_master_dev_handle_t I2C_dev_handle, uint8_t reg_addr, uint8_t* write_buf, uint8_t length)
+esp_err_t I2C_WriteBytes(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t* write_buf, uint8_t length)
 {
-    LockI2CTransfer(I2C_dev_handle, 1);
-    esp_err_t ret = i2c_master_transmit(I2C_dev_handle, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
-    LockI2CTransfer(I2C_dev_handle, 0);
+    LockI2CTransfer(I2C_cdev, 1);
+    esp_err_t ret = i2c_master_transmit(I2C_cdev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+    LockI2CTransfer(I2C_cdev, 0);
     return ret;
 }
