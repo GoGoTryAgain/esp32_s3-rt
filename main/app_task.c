@@ -4,13 +4,13 @@
 #include "drv_oled.h"
 #include "esp_log.h"
 #include "drv_MPU6050.h"
-
+#include "ble_gatt.h"
 
 
 void Task_init()
 {
     OLED_Task_Init();
-
+    BleGattTaskInit();
     xTaskCreate(
         MPU6050_Init,   // 任务函数
         "MPU6050_Init",      // 任务名
@@ -19,6 +19,7 @@ void Task_init()
         1,            // 优先级（高于 IDLE 任务）
         NULL         // 不保存任务句柄
     );
+
     while(1)
     {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
