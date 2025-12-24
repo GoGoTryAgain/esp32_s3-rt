@@ -179,7 +179,7 @@ void OLED_Task_Init(void)
     xTaskCreate(
         OLED_Init,   // 任务函数
         "oled_Init",      // 任务名
-        2048,         // 栈大小
+        4096,         // 栈大小
         NULL,         // 无参数
         2,            // 优先级（高于 IDLE 任务）
         NULL         // 不保存任务句柄

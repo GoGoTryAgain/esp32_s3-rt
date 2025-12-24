@@ -506,6 +506,9 @@ void BleGattInit(void *arg)
     }
 
     xTaskCreate(heart_rate_task, "Heart Rate", 2 * 1024, NULL, 5, NULL);
+    for (;;) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }
 
 void example_write_event_env(esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param)
