@@ -538,6 +538,7 @@ void MPU6050_Init(void *arg)
         ESP_LOGI(TAG, "ax: %d, ay: %d, az: %d, t: %d", accData.x, accData.y, accData.z, t);
 
         xQueueSend(g_msgQueue.msgQueueAcc, &accData, portMAX_DELAY);
+        xQueueSend(g_msgQueue.msgQueueAcc2Ble, &accData, portMAX_DELAY);
         vTaskDelay(200 / portTICK_PERIOD_MS);
     }
 

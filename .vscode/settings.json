@@ -33,5 +33,6 @@
     "sdkconfig.h": "c",
     "stdio.h": "c"
 },
-"idf.flashType": "JTAG"
+"idf.flashType": "JTAG",
+"idf.currentSetup": "D:\\esp\\v5.5.1\\esp-idf"
 }

@@ -21,6 +21,8 @@
 #include "esp_bt_main.h"
 #include "esp_bt_device.h"
 #include "esp_gatt_common_api.h"
+#include "queueManager.h"
+
 // #include "heart_rate.h"
 // #include "led.h"
 
@@ -64,6 +66,8 @@ static uint8_t led_status[2] = {0};
 static bool indicate_enabled = false;
 static bool hrs_create_cmpl = false;  // Heart Rate Service
 static uint8_t adv_config_done = 0;
+
+AccMsg_t g_accData;
 
 static esp_attr_value_t heart_rate_attr = {
     .attr_max_len = 2,
@@ -129,10 +133,20 @@ static void heart_rate_task(void* param)
             //heart_rate_val[1] = get_heart_rate();
             heart_rate_val[1] = 72;
 
-            esp_ble_gatts_set_attr_value(gl_profile_tab[HEART_PROFILE_APP_ID].char_handle, 2, heart_rate_val);
+            esp_ble_gatts_set_attr_value(gl_profile_tab[HEART_PROFILE_APP_ID].char_handle, 6, (uint8_t *)&g_accData);
         }
 
         vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
+
+
+static void UpdateAccDataTask(void* param)
+{
+    ESP_LOGI(GATTS_TAG, "Acc Data Task Start");
+    while (1) {
+        BaseType_t ret = xQueueReceive(g_msgQueue.msgQueueAcc2Ble, &g_accData, portMAX_DELAY);
+        // esp_ble_gatts_set_attr_value(gl_profile_tab[AUTO_IO_PROFILE_APP_ID].char_handle, 2, g_accData.x);
     }
 }
 
@@ -234,8 +248,8 @@ static void heart_gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_ga
         esp_gatt_rsp_t rsp;
         memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
         rsp.attr_value.handle = param->read.handle;
-        rsp.attr_value.len = 2;
-        memcpy(rsp.attr_value.value, heart_rate_val, sizeof(heart_rate_val));
+        rsp.attr_value.len = 6;
+        memcpy(rsp.attr_value.value, &g_accData, sizeof(g_accData));
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id, ESP_GATT_OK, &rsp);
         break;
     case ESP_GATTS_WRITE_EVT:
@@ -357,8 +371,10 @@ static void auto_io_gatts_profile_event_handler(esp_gatts_cb_event_t event, esp_
         memset(&rsp, 0, sizeof(esp_gatt_rsp_t));
 
         rsp.attr_value.handle = param->read.handle;
-        rsp.attr_value.len = 1;
-        rsp.attr_value.value[0] = 0x02;
+        rsp.attr_value.len = 3;
+        rsp.attr_value.value[0] = g_accData.x;
+        rsp.attr_value.value[1] = g_accData.y;
+        rsp.attr_value.value[2] = g_accData.z;
         esp_ble_gatts_send_response(gatts_if, param->read.conn_id, param->read.trans_id, ESP_GATT_OK, &rsp);
         break;
     case ESP_GATTS_WRITE_EVT:
@@ -506,6 +522,7 @@ void BleGattInit(void *arg)
     }
 
     xTaskCreate(heart_rate_task, "Heart Rate", 2 * 1024, NULL, 5, NULL);
+    xTaskCreate(UpdateAccDataTask, "update acc data", 2 * 1024, NULL, 5, NULL);
     for (;;) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

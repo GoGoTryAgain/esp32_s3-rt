@@ -7,6 +7,7 @@
 typedef struct
 {
     QueueHandle_t msgQueueAcc;
+    QueueHandle_t msgQueueAcc2Ble;
     QueueHandle_t msgQueueGyro;
 } QueueMsgManager_t;
 
