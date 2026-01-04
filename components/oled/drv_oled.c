@@ -51,6 +51,7 @@ void OLED_WR_Byte(unsigned data,unsigned DataMode)
 
 void OLED_Init(void *arg)
 { 	
+    esp_log_level_set(TAG, ESP_LOG_NONE);
     i2c_master_init();
     OLED_RegInit();
     OLED_Clear(); 

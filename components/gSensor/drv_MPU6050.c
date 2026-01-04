@@ -521,13 +521,13 @@ void MPU6050_Init(void *arg)
  * the clock source to use the X Gyro for reference, which is slightly better than
  * the default internal clock source.
  */
-
+    
     MPU6050_WhoAmI();
     SetClockSource(MPU6050_CLOCK_PLL_XGYRO);
     SetFullScaleGyroRange(MPU6050_GYRO_FS_250);
     SetFullScaleAccelRange(MPU6050_ACCEL_FS_2);
     SetSleepEnabled(false); 
-
+    esp_log_level_set(TAG, ESP_LOG_NONE);
     ESP_LOGI(TAG, "MPU6050 initialized successfully");
     while(1) {
         AccMsg_t accData;
