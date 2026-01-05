@@ -20,7 +20,7 @@ SemaphoreHandle_t gOledBuf_Mutex = NULL;
 uint8_t g_isNeedUpdate = 0;
 
 // func declare
-void HandleReceiveData(void *arg);
+void HandlePendingData(void *arg);
 void OLED_RegInit(void);
 static void i2c_master_init();
 void ShowOledContent(void *arg);
@@ -194,8 +194,8 @@ void OLED_Task_Init(void)
     //     &show_example_handle
     // );
     xTaskCreate(
-        HandleReceiveData,
-        "ShowMpu60xData",
+        HandlePendingData,
+        "HandlePendingData",
         8192,
         NULL,
         1,
@@ -223,22 +223,17 @@ void OLEDShowNumWithString(uint8_t x, uint8_t y, char *label, int32_t num, uint8
     OLED_ShowNum(x + strlen(label) * Char_Size / 2,  y, num, GetDigitCount(num), Char_Size);
 }
 
-void HandleReceiveData(void *arg)
+void HandlePendingData(void *arg)
 {
-    AccMsg_t recv_msg;
+    AccGyroMsg_t msg;
     for (;;) {
-        BaseType_t ret = xQueueReceive(g_msgQueue.msgQueueAcc, &recv_msg, portMAX_DELAY);
-        if (show_example_handle != NULL) {
-            vTaskDelete(show_example_handle);
-            show_example_handle = NULL;
-        }
-        if (ret == pdTRUE) {
-            OLEDShowNumWithString(0, 0,"x:", recv_msg.x, CHAR_WIDTH_16);
-            OLEDShowNumWithString(0, 2,"y:", recv_msg.y, CHAR_WIDTH_16);
-            OLEDShowNumWithString(0, 4,"z:", recv_msg.z, CHAR_WIDTH_16);
-        }
-        
-    } 
+        msg.acc = GetAccData();
+        OLEDShowNumWithString(0, 0,"x:", msg.acc.x, CHAR_WIDTH_16);
+        OLEDShowNumWithString(0, 2,"y:", msg.acc.y, CHAR_WIDTH_16);
+        OLEDShowNumWithString(0, 4,"z:", msg.acc.z, CHAR_WIDTH_16);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+
 }
 
 void ShowOledContent(void *arg)

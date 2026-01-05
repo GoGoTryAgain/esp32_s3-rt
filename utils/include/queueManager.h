@@ -25,8 +25,14 @@ typedef struct
     float z;
 } GyroMsg_t;
 
+typedef struct {
+    AccMsg_t acc;
+    GyroMsg_t gyro;
+} AccGyroMsg_t;
+
 extern QueueMsgManager_t g_msgQueue;
 
 void initQueueManager();
+AccMsg_t GetAccData();
 
 #endif
