@@ -165,6 +165,7 @@ static void acc_data_gatts_profile_event_handler(esp_gatts_cb_event_t event, esp
         gl_profile_tab[ACC_DATA_PROFILE_APP_ID].service_id.id.uuid.len = ESP_UUID_LEN_16;
         gl_profile_tab[ACC_DATA_PROFILE_APP_ID].service_id.id.uuid.uuid.uuid16 = ACC_DATA_UUID;
         //config adv data
+        adv_config_done |= ADV_CONFIG_FLAG;
         ret = esp_ble_gap_config_adv_data(&adv_data);
         if (ret) {
             ESP_LOGE(GATTS_TAG, "config adv data failed, error code = %x", ret);
