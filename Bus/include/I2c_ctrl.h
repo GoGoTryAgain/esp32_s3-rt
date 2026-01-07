@@ -34,7 +34,7 @@ void I2C_ReadBytes(i2c_dev_t I2C_cdev, uint8_t regAddr, uint8_t length, uint8_t 
 
 void I2C_WriteBit(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t bitNum, uint8_t enable);
 void I2C_WriteBits(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t bitStart, uint8_t length, uint8_t data);
-esp_err_t I2C_WriteBytes(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t* write_buf, uint8_t length);
+esp_err_t I2C_WriteBytes(i2c_dev_t I2C_cdev, uint8_t* write_buf, uint8_t length);
 
 void I2C_Unregister_Device(i2c_master_dev_handle_t dev_handle);
 

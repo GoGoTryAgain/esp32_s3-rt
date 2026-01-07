@@ -38,20 +38,36 @@ void OLED_WR_Byte(unsigned data,unsigned DataMode)
     if (DataMode != 0) {
         write_buf[0] = 0x40; // data mode
         write_buf[1] = data;
-        ret = i2c_master_transmit(I2C_dev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
     } else {
         write_buf[0] = 0x00; // Command mode
         write_buf[1] = data;
-        ret = i2c_master_transmit(I2C_dev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
     }
+    ret = I2C_WriteBytes(I2C_dev, write_buf, sizeof(write_buf));
     if (ret != ESP_OK) {
         ESP_LOGI(TAG, "I2C transmit failed， ack error!:%d", ret);
     }
 }
+// {
+//     esp_err_t ret;
+//     uint8_t write_buf[2] = {0};
+//     if (DataMode != 0) {
+//         write_buf[0] = 0x40; // data mode
+//         write_buf[1] = data;
+//         ret = i2c_master_transmit(I2C_dev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+//     } else {
+//         write_buf[0] = 0x00; // Command mode
+//         write_buf[1] = data;
+//         ret = i2c_master_transmit(I2C_dev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+//     }
+//     if (ret != ESP_OK) {
+//         ESP_LOGI(TAG, "I2C transmit failed， ack error!:%d", ret);
+//     }
+// }
+
 
 void OLED_Init(void *arg)
 { 	
-    esp_log_level_set(TAG, ESP_LOG_NONE);
+    //esp_log_level_set(TAG, ESP_LOG_NONE);
     i2c_master_init();
     OLED_RegInit();
     OLED_Clear(); 
@@ -74,7 +90,7 @@ void SendWholeOledBuffer()
         xSemaphoreGive(gOledBuf_Mutex);
         return;
     }
-
+    ESP_LOGI(TAG, "flush oled");
     for (int i = 0; i < MAX_PAGE_SIZE; i++) {
         
         // ESP_LOGI(TAG, "set page %d", i);
@@ -166,6 +182,7 @@ static void i2c_master_init()
     };
     I2C_dev.portIndex = I2C_MASTER_INDEX;
     ESP_ERROR_CHECK(I2C_register_Device(I2C_dev.portIndex, &dev_config, &I2C_dev.i2c_dev));
+    ESP_LOGI(TAG, "i2c_master_init done");
 }
 
 
@@ -219,7 +236,7 @@ void OLED_Task_Init(void)
 void OLEDShowNumWithString(uint8_t x, uint8_t y, char *label, int32_t num, uint8_t Char_Size)
 {
     OLED_ShowString(x, y, label, Char_Size);
-    ESP_LOGI(TAG, "x is %d", strlen(label) * Char_Size);
+    //ESP_LOGI(TAG, "x is %d", strlen(label) * Char_Size);
     OLED_ShowNum(x + strlen(label) * Char_Size / 2,  y, num, GetDigitCount(num), Char_Size);
 }
 

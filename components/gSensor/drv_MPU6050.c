@@ -494,21 +494,9 @@ int16_t GetTemperature()
 void MPU6050_WhoAmI()
 {
     uint8_t tmpdata = 0;
-    uint8_t reg_addr = MPU6050_WHO_AM_I_ADDR;
-    uint8_t length = 1;
-    //I2C_ReadByte(I2C_cdev, &reg_addr, &tmpdata);
-    esp_err_t err = i2c_master_transmit_receive(I2C_cdev.i2c_dev, &reg_addr, sizeof(reg_addr), &tmpdata, length, I2C_MASTER_TIMEOUT_MS);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to read MPU6050_WHO_AM_I_ADDR");
-        return;
-    }
-    // ReadByte(MPU6050_WHO_AM_I_ADDR, &tmpdata);
+    ReadByte(I2C_cdev, MPU6050_WHO_AM_I_ADDR, &tmpdata);
     ESP_LOGI(TAG, "MPU6050_WHO_AM_I_ADDR: 0x%x", tmpdata);
-    if (tmpdata == MPU6050_ADDRESS_ADDRESS) {
-        ESP_LOGI(TAG, "MPU6050 device found with 0x%x", tmpdata);
-    } else {
-        ESP_LOGE(TAG, "MPU6050 device not found! Read 0x%x", tmpdata);
-    }
+
 }
 
 void MPU6050_Init(void *arg) 

@@ -26,8 +26,8 @@
 // #include "heart_rate.h"
 // #include "led.h"
 
-#define PROFILE_NUM 3
-#define ACC_DATA_PROFILE_APP_ID 1
+#define PROFILE_NUM 1
+#define ACC_DATA_PROFILE_APP_ID 0
 #define ACC_DATA_UUID 0x181B 
 
 #define ADV_CONFIG_FLAG      (1 << 0)
@@ -47,6 +47,7 @@ struct gatts_profile_inst {
     esp_gatt_char_prop_t property;
     uint16_t descr_handle;
     esp_bt_uuid_t descr_uuid;
+    uint8_t is_connected;
 };
 
 ///Declare the static function
@@ -109,6 +110,7 @@ static void UpdateAccDataTask(void* param)
         g_accData = GetAccData();
         memcpy(acc_data_buffer, &g_accData, sizeof(AccMsg_t));
         esp_ble_gatts_set_attr_value(gl_profile_tab[ACC_DATA_PROFILE_APP_ID].char_handle, sizeof(acc_data_buffer), acc_data_buffer);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -247,22 +249,27 @@ static void acc_data_gatts_profile_event_handler(esp_gatts_cb_event_t event, esp
         ESP_LOGI(GATTS_TAG, "Connected, conn_id %u, remote "ESP_BD_ADDR_STR"",
                 param->connect.conn_id, ESP_BD_ADDR_HEX(param->connect.remote_bda));
         gl_profile_tab[ACC_DATA_PROFILE_APP_ID].conn_id = param->connect.conn_id;
+        gl_profile_tab[ACC_DATA_PROFILE_APP_ID].is_connected = true;
         esp_ble_gap_update_conn_params(&conn_params);
         break;
     case ESP_GATTS_DISCONNECT_EVT:
         ESP_LOGI(GATTS_TAG, "Disconnected, remote "ESP_BD_ADDR_STR", reason 0x%02x",
                  ESP_BD_ADDR_HEX(param->disconnect.remote_bda), param->disconnect.reason);
+        gl_profile_tab[ACC_DATA_PROFILE_APP_ID].is_connected = false;
+        gl_profile_tab[ACC_DATA_PROFILE_APP_ID].conn_id = 0;
         break;
     case ESP_GATTS_CONF_EVT:
-        ESP_LOGI(GATTS_TAG, "Confirm receive, status %d, attr_handle %d", param->conf.status, param->conf.handle);
+        //ESP_LOGI(GATTS_TAG, "Confirm receive, status %d, attr_handle %d", param->conf.status, param->conf.handle);
         if (param->conf.status != ESP_GATT_OK) {
             ESP_LOG_BUFFER_HEX(GATTS_TAG, param->conf.value, param->conf.len);
         }
         break;
     case ESP_GATTS_SET_ATTR_VAL_EVT:
-        ESP_LOGI(GATTS_TAG, "has set attr, send indicate");
-        esp_ble_gatts_send_indicate(gatts_if, gl_profile_tab[ACC_DATA_PROFILE_APP_ID].conn_id,
-            gl_profile_tab[ACC_DATA_PROFILE_APP_ID].char_handle, sizeof(acc_data_buffer), acc_data_buffer, true);
+        if (gl_profile_tab->is_connected) {
+            ESP_LOGI(GATTS_TAG, "has set attr, send indicate");
+            esp_ble_gatts_send_indicate(gatts_if, gl_profile_tab[ACC_DATA_PROFILE_APP_ID].conn_id,
+                gl_profile_tab[ACC_DATA_PROFILE_APP_ID].char_handle, sizeof(acc_data_buffer), acc_data_buffer, true);
+        }
         break;
     default:
         break;

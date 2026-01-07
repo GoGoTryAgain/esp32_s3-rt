@@ -167,10 +167,10 @@ void I2C_WriteBits(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t bitStart, uint8
 }
 
 
-esp_err_t I2C_WriteBytes(i2c_dev_t I2C_cdev, uint8_t reg_addr, uint8_t* write_buf, uint8_t length)
+esp_err_t I2C_WriteBytes(i2c_dev_t I2C_cdev, uint8_t* write_buf, uint8_t length)
 {
     LockI2CTransfer(I2C_cdev, 1);
-    esp_err_t ret = i2c_master_transmit(I2C_cdev.i2c_dev, write_buf, sizeof(write_buf), I2C_MASTER_TIMEOUT_MS);
+    esp_err_t ret = i2c_master_transmit(I2C_cdev.i2c_dev, write_buf, length, I2C_MASTER_TIMEOUT_MS);
     LockI2CTransfer(I2C_cdev, 0);
     return ret;
 }
