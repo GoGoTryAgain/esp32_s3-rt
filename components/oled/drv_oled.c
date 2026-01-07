@@ -18,6 +18,8 @@ SemaphoreHandle_t gInitSem;
 SemaphoreHandle_t gOledBuf_Mutex = NULL;
 
 uint8_t g_isNeedUpdate = 0;
+uint8_t g_isInited = 0;
+
 
 // func declare
 void HandlePendingData(void *arg);
@@ -73,6 +75,7 @@ void OLED_Init(void *arg)
     OLED_Clear(); 
     ESP_LOGI(TAG, "to send sem");
     xSemaphoreGive(gInitSem); // 释放信号量
+    g_isInited = 1;
     vTaskDelete(NULL); // 删除当前任务，不会触发错误
 }  
 
@@ -244,6 +247,10 @@ void HandlePendingData(void *arg)
 {
     AccGyroMsg_t msg;
     for (;;) {
+        if (!g_isInited) {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            continue;
+        }
         msg.acc = GetAccData();
         OLEDShowNumWithString(0, 0,"x:", msg.acc.x, CHAR_WIDTH_16);
         OLEDShowNumWithString(0, 2,"y:", msg.acc.y, CHAR_WIDTH_16);
@@ -255,7 +262,12 @@ void HandlePendingData(void *arg)
 
 void ShowOledContent(void *arg)
 {
+    xSemaphoreTake(gInitSem, portMAX_DELAY);
     for (;;) {
+        if (!g_isInited) {
+            vTaskDelay(200 / portTICK_PERIOD_MS);
+            continue;
+        }
         SendWholeOledBuffer();
         vTaskDelay(200 / portTICK_PERIOD_MS);
     }
